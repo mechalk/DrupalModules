@@ -1,0 +1,4 @@
+name = Income
+description = A block module that allows users to enter income transactions that include an amount and date
+core = 7.x
+dependencies[] = budget

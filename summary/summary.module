@@ -1,0 +1,201 @@
+<?php
+
+/**
+ * Implements hook_help()
+ *
+ * Displays help and module information
+ *
+ * @param path
+ *    Which path of the site we're using to display help
+ * @param arg
+ *    Array that holds the current path as returned from arg() function
+ */
+function summary_help($path, $arg)
+{
+   switch ($path) 
+   {
+   case "admin/help#summary":
+      return '<p>' . t("Allows a user to view a summary for the budget") . '<\p>';
+      break;
+   }
+}
+
+/**
+ * Implements hook_block_info()
+ */
+function summary_block_info()
+{
+   $blocks['summary'] = array(
+      // The name that will appear in the block list
+      'info' => t('Budget Summary'),
+   );
+   return $blocks;
+}
+
+
+/**
+ * Implements hook_block_view()
+ *
+ * Prepares the contents of the block
+ */
+function summary_block_view($delta = '')
+{
+   switch($delta)
+   {
+   case 'summary':
+      $block['subject'] = t('');
+      if(user_access('access content'))
+      {
+         $incomeSummaryForm = drupal_get_form('income_summary_form');
+         $budgetSummaryForm = drupal_get_form('budget_summary_form');
+
+         setlocale(LC_MONETARY, 'en_US.UTF-8');
+         $block['content'] =  "<h1><b>Total Earned: " . money_format('%.2n', $_SESSION['totalEarned']) . "</b></h1>";
+         $block['content'] .= drupal_render($incomeSummaryForm);
+         $block['content'] .= "<h1><b>Total Used: " . money_format('%.2n', $_SESSION['totalUsed']) . "</b></h1>";
+         $block['content'] .= drupal_render($budgetSummaryForm);
+      }
+
+      return $block;
+   }
+}
+
+
+/**
+ * Creates the form to display the income summary
+ */
+function income_summary_form()
+{
+   $form = array();
+
+   $endTime = time();
+   $currentYear = date("Y", $endTime);
+   $startTime = strtotime(t("January 1 !year", array('!year' => $currentYear)));
+
+   // Create the summary table form
+   $form['incomeSummary'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Income Summary for ' . $currentYear),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+   );
+
+   $header = array(
+      'category' => t('Category'),
+      'earned' => t('Amount Earned'),
+   );
+
+   $items = array();
+
+   // Retrieve the budget categories from the database
+   $incomeContents = budget_income_contents();
+
+   $_SESSION['totalEarned'] = 0;
+
+   setlocale(LC_MONETARY, 'en_US.UTF-8');
+   foreach ($incomeContents as $income)
+   {
+      // Calculate the amount used for the current year
+      $amountEarnedQuery = db_select('income', 'i')
+         ->fields('i', array('timestamp', 'amount', 'category'))
+         ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
+         ->condition('category', $income->id);
+      $amountEarnedQuery->addExpression('SUM(amount)', 'sum_of_amount');
+      $result = $amountEarnedQuery->execute()->fetchAll();
+      $amountEarned = $result[0]->sum_of_amount;
+
+      $items[$income->id] = array(
+         'category' => $income->category,
+         'earned' => money_format('%.2n', $amountEarned),
+      );
+
+      $_SESSION['totalEarned'] = $_SESSION['totalEarned'] + $amountEarned;
+   }
+
+   $items[10000] = array(
+      'category' => "<b>" . "TOTAL" . "</b>",
+      'earned' => "<b>" . money_format('%.2n', $_SESSION['totalEarned']) . "</b>",
+   );
+
+   $form['incomeSummary']['items'] = array(
+      '#type' => 'tableselect',
+      '#header' => $header,
+      '#options' => $items,
+   );
+
+   return $form;
+}
+
+/**
+ * Creates the form to display the budget summary
+ */
+function budget_summary_form()
+{
+   $form = array();
+
+   $endTime = time();
+   $currentYear = date("Y", $endTime);
+   $startTime = strtotime(t("January 1 !year", array('!year' => $currentYear)));
+
+   // Create the summary table form
+   $form['summary'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Budget Summary for ' . $currentYear),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+   );
+
+   $header = array(
+      'category' => t('Category'),
+      'allocated' => t('Amount Allocated'),
+      'used' => t('Amount Used'),
+      'remaining' => t('Percent Remaining'),
+   );
+
+   $items = array();
+
+   // Retrieve the budget categories from the database
+   $budgetContents = budget_contents();
+
+   $totalAllocated = 0;
+   $_SESSION['totalUsed'] = 0;
+
+   setlocale(LC_MONETARY, 'en_US.UTF-8');
+   foreach ($budgetContents as $budget)
+   {
+      // Calculate the amount used for the current year
+      $amountUsedQuery = db_select('transactions', 't')
+         ->fields('t', array('timestamp', 'amount', 'category'))
+         ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
+         ->condition('category', $budget->id);
+      $amountUsedQuery->addExpression('SUM(amount)', 'sum_of_amount');
+      $result = $amountUsedQuery->execute()->fetchAll();
+      $amountUsed = $result[0]->sum_of_amount;
+      $remaining = round((($budget->allocation - $amountUsed) / $budget->allocation) * 100);
+
+      $items[$budget->id] = array(
+         'category' => $budget->category,
+         'allocated' => money_format('%.2n', $budget->allocation),
+         'used' => money_format('%.2n', $amountUsed),
+         'remaining' => $remaining,
+      );
+
+      $totalAllocated = $totalAllocated + $budget->allocation;
+      $_SESSION['totalUsed'] = $_SESSION['totalUsed'] + $amountUsed;
+   }
+
+   $items[10000] = array(
+      'category' => "<b>" . "TOTAL" . "</b>",
+      'allocated' => "<b>" . money_format('%.2n', $totalAllocated) . "</b>",
+      'used' => "<b>" . money_format('%.2n', $_SESSION['totalUsed']) . "</b>",
+      'remaining' => "<b>" . round((($totalAllocated - $_SESSION['totalUsed']) / $totalAllocated) * 100) . "<b>",
+   );
+
+   $form['summary']['items'] = array(
+      '#type' => 'tableselect',
+      '#header' => $header,
+      '#options' => $items,
+   );
+
+   return $form;
+}

@@ -1,0 +1,4 @@
+name = Transactions
+description = A block module that allows users to enter transactions that include an amount, date, and budget category
+core = 7.x
+dependencies[] = budget

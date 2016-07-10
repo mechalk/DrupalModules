@@ -1,0 +1,5 @@
+name = Summary
+description = A block module that shows the summary of the budget. Subtracts transactions from budget allocation and displays result.
+core = 7.x
+dependencies[] = budget 
+dependencies[] = transactions
