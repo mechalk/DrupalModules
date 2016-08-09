@@ -86,9 +86,9 @@ function transactions_block_info()
  * Custom content function
  * Retrieve the transactions spanning the date range provided
  */
-function transaction_contents($startTime, $endTime, $sort)
+function transaction_contents($startTime, $endTime, $sort, $categories)
 {
-   //if(!$sort)
+   if(!$categories)
    {
       // Select the transactions from the transactions table
       $query = db_select('transactions', 't')
@@ -97,21 +97,16 @@ function transaction_contents($startTime, $endTime, $sort)
          ->orderby('timestamp', 'DESC')
          ->execute();
    }
-/*
    else
    {
       // Select the transactions from the transactions table
       $query = db_select('transactions', 't')
          ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category'))
-         ->condition('timestamp', array($startTime, $endTime), 'BETWEEN');
-
-      $query = $query
-         ->extend('TableSort')
-         ->orderByHeader($sort);
-
-      $query = $query->execute();
+         ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
+         ->condition('category', $categories)
+         ->orderby('timestamp', 'DESC')
+         ->execute();
    }
- */
 
    return $query;
 }
@@ -382,7 +377,7 @@ function transactions_filter_form()
       $_SESSION['endTime'] = $endTime;
    }
 
-   $endDay = date("d", $endTime);
+   $endDay = date("j", $endTime);
    $endMonth = date("n", $endTime);
    $endYear = date("Y", $endTime);
    $endDate = array(
@@ -403,7 +398,7 @@ function transactions_filter_form()
       $_SESSION['startTime'] = $startTime;
    }
 
-   $startDay = date("d", $startTime);
+   $startDay = date("j", $startTime);
    $startMonth = date("n", $startTime);
    $startYear = date("Y", $startTime);
    $startDate = array(
@@ -424,13 +419,40 @@ function transactions_filter_form()
       '#title' => t('End Date'),
    );
 
+   $categorySelect = getCategorySelect(array());
+
+   // Able to select more than 1 value
+   $categorySelect['#multiple'] = TRUE;
+
+   // Set the default values if not already set
+   if(!(isset($_SESSION['categories'])))
+   {
+      $_SESSION['categories'] = array_keys($categorySelect['#options']);
+   }
+   $categorySelect['#default_value'] = $_SESSION['categories'];
+
+   // Add the category select form
+   $form['filter']['categorySelect'] = $categorySelect;
+
    $form['filter']['submit'] = array(
       '#type' => 'submit',
       '#value' => 'Filter',
+      '#validate' => array('filter_validate'),
       '#submit' => array('filter_submit'),
    );
 
    return $form;
+}
+
+function filter_validate($form, &$form_state)
+{
+   // Make sure at least one category is selected
+   $selectedCategories = $form_state['values']['categorySelect'];
+
+   if(!$selectedCategories)
+   {
+      form_set_error('categorySelect', 'Please select at least one category in the filter');
+   }
 }
 
 function filter_submit($form, &$form_state)
@@ -440,14 +462,16 @@ function filter_submit($form, &$form_state)
    $startDay = $form_state['values']['startDate']['day'];
    $startTimeString = $startMonth . "/" . $startDay . "/" . $startYear;
    $startTimestamp = strtotime($startTimeString);
-   $_SESSION['startTime'] = $startTimestamp;
 
    $endYear = $form_state['values']['endDate']['year'];
    $endMonth = $form_state['values']['endDate']['month'];
    $endDay = $form_state['values']['endDate']['day'];
    $endTimeString = $endMonth . "/" . $endDay . "/" . $endYear;
    $endTimestamp = strtotime($endTimeString);
+
+   $_SESSION['startTime'] = $startTimestamp;
    $_SESSION['endTime'] = $endTimestamp;
+   $_SESSION['categories'] = $form_state['values']['categorySelect'];
 }
 
 /**
@@ -488,7 +512,7 @@ function transactions_view_form()
    );
 
    // Get the transactions from the database
-   $result = transaction_contents($startTime, $endTime, $header);
+   $result = transaction_contents($startTime, $endTime, $header, $_SESSION['categories']);
 
    // Array to contain the list of transactions returned from the database
    $transactions = array();
