@@ -42,6 +42,12 @@ function transactions_schema()
             'length' => 100,
             'not null' => TRUE,
          ),
+         'tax_deduct' => array(
+            'description' => 'Indicates if transaction is tax deductible',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+         ),
       ),
       'primary key' => array('id'),
    );
@@ -86,29 +92,27 @@ function transactions_block_info()
  * Custom content function
  * Retrieve the transactions spanning the date range provided
  */
-function transaction_contents($startTime, $endTime, $sort, $categories)
+function transaction_contents($startTime, $endTime, $categories, $taxDeduct)
 {
-   if(!$categories)
+   // Select the transactions from the transactions table
+   $query = db_select('transactions', 't')
+      ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category'))
+      ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
+      ->orderby('timestamp', 'DESC');
+
+   if($categories)
    {
-      // Select the transactions from the transactions table
-      $query = db_select('transactions', 't')
-         ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category'))
-         ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
-         ->orderby('timestamp', 'DESC')
-         ->execute();
-   }
-   else
-   {
-      // Select the transactions from the transactions table
-      $query = db_select('transactions', 't')
-         ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category'))
-         ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
-         ->condition('category', $categories)
-         ->orderby('timestamp', 'DESC')
-         ->execute();
+      $query->condition('category', $categories);
    }
 
-   return $query;
+   if($taxDeduct)
+   {
+      // Select the transactions from the transactions table
+      $query->condition('tax_deduct', $taxDeduct);
+   }
+
+   $result = $query->execute();
+   return $result;
 }
 
 /**
@@ -229,6 +233,12 @@ function transactions_add_form()
 
       $form['addTransaction']['categorySelect'] = $categorySelect;
 
+      $form['addTransaction']['taxDeduct'] = array(
+         '#type' => 'checkbox',
+         '#title' => t('Tax Deductible'),
+         '#default_value' => 0,
+      );
+
       $form['addTransaction']['submit'] = array(
          '#type' => 'submit',
          '#value' => 'Add Transaction',
@@ -338,12 +348,18 @@ function add_transaction_submit($form, &$form_state)
          'payee' => $payee,
          'timestamp' => $timestamp,
          'amount' => $amount,
-         'category' => $categoryId
+         'category' => $categoryId,
+         'tax_deduct' => $form_state['values']['taxDeduct'],
       ))
       ->execute())
    {
       setlocale(LC_MONETARY, 'en_US.UTF-8');
       $debug_message = "Successfully added transaction: " . $payee . " for " . money_format('%.2n', $amount) . " on " . $month . "/" . $day . "/" . $year . "  seconds " . $timestamp;
+
+      if($form_state['values']['taxDeduct'])
+      {
+         $debug_message .= " with tax deductible status";
+      }
       drupal_set_message($debug_message, 'status');
    }
 }
@@ -434,6 +450,18 @@ function transactions_filter_form()
    // Add the category select form
    $form['filter']['categorySelect'] = $categorySelect;
 
+   // Add the tax deductible check box
+   if(!(isset($_SESSION['taxDeduct'])))
+   {
+      $_SESSION['taxDeduct'] = false;
+   }
+
+   $form['filter']['taxDeduct'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Tax Deductible'),
+      '#default_value' => $_SESSION['taxDeduct'],
+   );
+
    $form['filter']['submit'] = array(
       '#type' => 'submit',
       '#value' => 'Filter',
@@ -469,6 +497,7 @@ function filter_submit($form, &$form_state)
    $endTimeString = $endMonth . "/" . $endDay . "/" . $endYear;
    $endTimestamp = strtotime($endTimeString);
 
+   $_SESSION['taxDeduct'] = $form_state['values']['taxDeduct'];
    $_SESSION['startTime'] = $startTimestamp;
    $_SESSION['endTime'] = $endTimestamp;
    $_SESSION['categories'] = $form_state['values']['categorySelect'];
@@ -512,7 +541,7 @@ function transactions_view_form()
    );
 
    // Get the transactions from the database
-   $result = transaction_contents($startTime, $endTime, $header, $_SESSION['categories']);
+   $result = transaction_contents($startTime, $endTime, $_SESSION['categories'], $_SESSION['taxDeduct']);
 
    // Array to contain the list of transactions returned from the database
    $transactions = array();
