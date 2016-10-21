@@ -469,6 +469,12 @@ function transactions_filter_form()
       '#submit' => array('filter_submit'),
    );
 
+   $form['filter']['reset'] = array(
+      '#type' => 'submit',
+      '#value' => 'Reset',
+      '#submit' => array('filter_reset'),
+   );
+
    return $form;
 }
 
@@ -501,6 +507,14 @@ function filter_submit($form, &$form_state)
    $_SESSION['startTime'] = $startTimestamp;
    $_SESSION['endTime'] = $endTimestamp;
    $_SESSION['categories'] = $form_state['values']['categorySelect'];
+}
+
+function filter_reset($form, &$form_state)
+{
+   $_SESSION['startTime'] = null;
+   $_SESSION['endTime'] = null;
+   $_SESSION['taxDeduct'] = null;
+   $_SESSION['categories'] = null;
 }
 
 /**
