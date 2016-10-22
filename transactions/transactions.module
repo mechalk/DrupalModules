@@ -180,12 +180,12 @@ function getCategorySelect($defaultCategory)
       }
       else
       {
-         // TODO: default_value does not work as called from transactions_view_form
          $categorySelect = array(
             '#type' => 'select',
             '#title' => t('Category'),
             '#options' => $categories,
-            '#default_value' => $defaultCategory
+            '#default_value' => $defaultCategory,
+            '#value' => $defaultCategory,
          );
       }
    }
@@ -560,19 +560,6 @@ function transactions_view_form()
    // Array to contain the list of transactions returned from the database
    $transactions = array();
 
-   // TODO: REMOVE when getCategorySelect works here
-   // Get the budget contents from the database
-   $budgetContents = budget_contents();
-
-   // Array to contain the list of categories returned from the database
-   $categories = array();
-
-   foreach($budgetContents as $budget)
-   {
-      $categories[$budget->id] = $budget->category;
-   }
-   // TODO: END REMOVE
-   
    // Iterate over the result set and set the options for the tableselect
    setlocale(LC_MONETARY, 'en_US.UTF-8');
    foreach($result as $transaction)
@@ -581,12 +568,7 @@ function transactions_view_form()
          'payee' => $transaction->payee,
          'amount' => t("!amount", array('!amount' => money_format('%.2n', $transaction->amount))),
          'date' => date('m/d/Y', $transaction->timestamp),
-         'category' => $categories[$transaction->category],
-         /* TODO: Does not render properly. default_value is ignored
-         'category' => array(
-            'data' => getCategorySelect($transaction->category)
-         )
-          */
+         'category' => getCategorySelect($transaction->category)['#options'][$transaction->category],
       );
    }
 
