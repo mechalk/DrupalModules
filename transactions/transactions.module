@@ -552,6 +552,7 @@ function transactions_view_form()
       array('data' => 'Amount', 'field' => 'amount', 'sort' => 'ASC'),
       array('data' => 'Date', 'field' => 'date', 'sort' => 'ASC'),
       array('data' => 'Category', 'field' => 'category', 'sort' => 'ASC'),
+      array('data' => 'Delete', 'field' => 'delete', 'sort' => 'ASC'),
    );
 
    // Get the transactions from the database
@@ -564,11 +565,19 @@ function transactions_view_form()
    setlocale(LC_MONETARY, 'en_US.UTF-8');
    foreach($result as $transaction)
    {
+      $buttonfield = array(
+         '#type' => 'submit',
+         '#value' => t('Delete'),
+         '#name' => 'delete_button_' . $transaction->id,
+         '#submit' => array('remove_transaction_submit'),
+      );
+
       $transactions[$transaction->id] = array(
          'payee' => $transaction->payee,
          'amount' => t("!amount", array('!amount' => money_format('%.2n', $transaction->amount))),
          'date' => date('m/d/Y', $transaction->timestamp),
          'category' => getCategorySelect($transaction->category)['#options'][$transaction->category],
+         'delete' => array('data'=>$buttonfield),
       );
    }
 
@@ -589,6 +598,7 @@ function transactions_view_form()
          'amount' => t('Amount'),
          'date' => t('Date'),
          'category' => t('Category'),
+         'delete' => t('Delete'),
       );
 
       $form['transactions']['items'] = array(
@@ -610,7 +620,6 @@ function transactions_view_form()
 
 function remove_transaction_submit($form, &$form_state)
 {
-   $debug_message = t('');
    $selectedIDs = array_filter($form_state['values']['items']);
 
    $num_deleted = 0;
@@ -627,8 +636,24 @@ function remove_transaction_submit($form, &$form_state)
 
    if($num_deleted > 0)
    {
-      $debug_message .= "Successfully removed " . $num_deleted . " transactions<br/>";
+      $debug_message = "Successfully removed " . $num_deleted . " transactions";
       drupal_set_message($debug_message, 'status');
    }
-}
+   else
+   {
+      foreach($form_state['input'] as $key=>$value)
+      {
+         if("delete_button_" == substr($key,0,14))
+         {
+            $id = substr($key,strrpos($key,'_')+1);
+         }
+      }
 
+      if($id)
+      {
+         db_delete('transactions')
+            ->condition('id', $id)
+            ->execute();
+      }
+   }
+}
