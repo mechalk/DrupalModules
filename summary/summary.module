@@ -1,5 +1,41 @@
 <?php
 
+function summary_getStartTime($endTime=NULL)
+{
+   if(isset($_SESSION['startTime']))
+   {
+      $startTime = $_SESSION['startTime'];
+   }
+   else
+   {
+      if(!$endTime)
+      {
+         $endTime = time();
+      }
+
+      $endYear = date("Y", $endTime);
+      $startTime = strtotime(t("January 1 !year", array('!year' => $endYear)));
+      $_SESSION['startTime'] = $startTime;
+   }
+
+   return $startTime;
+}
+
+function summary_getEndTime()
+{
+   if(isset($_SESSION['endTime']))
+   {
+      $endTime = $_SESSION['endTime'];
+   }
+   else
+   {
+      $endTime = time();
+      $_SESSION['endTime'] = $endTime;
+   }
+
+   return $endTime;
+}
+
 /**
  * Implements hook_help()
  *
@@ -46,11 +82,13 @@ function summary_block_view($delta = '')
       $block['subject'] = t('');
       if(user_access('access content'))
       {
+         $filterForm = drupal_get_form('summary_filter_form');
          $incomeSummaryForm = drupal_get_form('income_summary_form');
          $budgetSummaryForm = drupal_get_form('budget_summary_form');
 
+         $block['content'] = drupal_render($filterForm);
          setlocale(LC_MONETARY, 'en_US.UTF-8');
-         $block['content'] =  "<h1><b>Total Earned: " . money_format('%.2n', $_SESSION['totalEarned']) . "</b></h1>";
+         $block['content'] .=  "<h1><b>Total Earned: " . money_format('%.2n', $_SESSION['totalEarned']) . "</b></h1>";
          $block['content'] .= drupal_render($incomeSummaryForm);
          $block['content'] .= "<h1><b>Total Used: " . money_format('%.2n', $_SESSION['totalUsed']) . "</b></h1>";
          $block['content'] .= drupal_render($budgetSummaryForm);
@@ -62,22 +100,114 @@ function summary_block_view($delta = '')
 
 
 /**
+ * Function to add the filter form
+ */
+function summary_filter_form()
+{
+   $form = array();
+
+   // Create the filter form
+   $form['filter'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Select Date Range'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+   );
+
+   $endTime = summary_getEndTime();
+   $startTime = summary_getStartTime($endTime);
+
+   $startDay = date("j", $startTime);
+   $startMonth = date("n", $startTime);
+   $startYear = date("Y", $startTime);
+   $startDate = array(
+      'year' => $startYear,
+      'month' => $startMonth,
+      'day' => $startDay,
+   );
+   
+   $form['filter']['startDate'] = array(
+      '#type' => 'date',
+      '#default_value' => $startDate,
+      '#title' => t('Start Date'),
+   );
+
+   $endDay = date("j", $endTime);
+   $endMonth = date("n", $endTime);
+   $endYear = date("Y", $endTime);
+   $endDate = array(
+      'year' => $endYear,
+      'month' => $endMonth,
+      'day' => $endDay,
+   );
+
+   $form['filter']['endDate'] = array(
+      '#type' => 'date',
+      '#default_value' => $endDate,
+      '#title' => t('End Date'),
+   );
+
+   $form['filter']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => 'Save',
+      '#submit' => array('summary_filter_submit'),
+   );
+
+   $form['filter']['reset'] = array(
+      '#type' => 'submit',
+      '#value' => 'Reset',
+      '#submit' => array('summary_filter_reset'),
+   );
+
+   return $form;
+}
+
+/**
+ * Reset the filter values to the defaults
+ */
+function summary_filter_reset($form, &$form_state)
+{
+   $_SESSION['startTime'] = null;
+   $_SESSION['endTime'] = null;
+}
+
+/**
+ * Filter Submit function
+ */
+function summary_filter_submit($form, &$form_state)
+{
+   $startYear = $form_state['values']['startDate']['year'];
+   $startMonth = $form_state['values']['startDate']['month'];
+   $startDay = $form_state['values']['startDate']['day'];
+   $startTimeString = $startMonth . "/" . $startDay . "/" . $startYear;
+   $startTimestamp = strtotime($startTimeString);
+
+   $endYear = $form_state['values']['endDate']['year'];
+   $endMonth = $form_state['values']['endDate']['month'];
+   $endDay = $form_state['values']['endDate']['day'];
+   $endTimeString = $endMonth . "/" . $endDay . "/" . $endYear;
+   $endTimestamp = strtotime($endTimeString);
+
+   $_SESSION['startTime'] = $startTimestamp;
+   $_SESSION['endTime'] = $endTimestamp;
+}
+
+/**
  * Creates the form to display the income summary
  */
 function income_summary_form()
 {
    $form = array();
 
-   $endTime = time();
-   $currentYear = date("Y", $endTime);
-   $startTime = strtotime(t("January 1 !year", array('!year' => $currentYear)));
+   $endTime = summary_getEndTime();
+   $startTime = summary_getStartTime($endTime);
 
    // Create the summary table form
    $form['incomeSummary'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Income Summary for ' . $currentYear),
+      '#title' => t('Income Summary for ' . date('n/d/Y', $startTime) . ' to ' . date('n/d/Y', $endTime)),
       '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
+      '#collapsed' => FALSE,
    );
 
    $header = array(
@@ -133,16 +263,15 @@ function budget_summary_form()
 {
    $form = array();
 
-   $endTime = time();
-   $currentYear = date("Y", $endTime);
-   $startTime = strtotime(t("January 1 !year", array('!year' => $currentYear)));
+   $endTime = summary_getEndTime();
+   $startTime = summary_getStartTime($endTime);
 
    // Create the summary table form
    $form['summary'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Budget Summary for ' . $currentYear),
+      '#title' => t('Budget Summary for ' . date('n/d/Y', $startTime) . ' to ' . date('n/d/Y', $endTime)),
       '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
+      '#collapsed' => FALSE,
    );
 
    $header = array(
