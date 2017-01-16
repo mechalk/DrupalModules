@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the budget database
+ */
+
+/**
+ * Implements hook_schema()
+ *
+ * Defines the database tables used by the budget module
+ *
+ * @see hook_schema()
+ */
+function budget_schema()
+{
+   // Create the accounts table
+   $schema['accounts'] = array(
+      'description' => t('The base table for account information'),
+      'fields' => array(
+         'id' => array(
+            'description' => 'The primary identifier for an account',
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'uid' => array(
+            'description' => 'ID for the user that entered this account',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'name' => array(
+            'description' => 'Name for the account',
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => TRUE,
+         ),
+         'balance' => array(
+            'description' => 'Amount for the account',
+            'type' => 'float',
+            'not null' => TRUE,
+         ),
+      ),
+      'primary key' => array('id'),
+   );
+
+   return $schema;
+}

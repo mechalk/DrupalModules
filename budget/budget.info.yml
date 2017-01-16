@@ -1,0 +1,5 @@
+name: Budget Module
+type: module
+description: Module that allows a user to set and use a budget
+package: Budget
+core: 8.x
