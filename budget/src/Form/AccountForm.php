@@ -65,6 +65,43 @@ class AccountForm extends FormBase
    }
 
    /**
+    * Implements form validation
+    *
+    * @param array $form
+    *    The render array of the currently built form
+    * @param FormStateInterface $form_state
+    *    Object describing the current state of the form
+    */
+   public function validateForm(array &$form, FormStateInterface $form_state)
+   {
+      foreach($form_state->getUserInput() as $key=>$value)
+      {
+         if(strcasecmp($key, "op") == 0)
+         {
+            $operation = $value;
+         }
+         else if(strcasecmp($key, "name") == 0)
+         {
+            $name = $value;
+         }
+         else if(strcasecmp($key, "balance") == 0)
+         {
+            $balance = $value;
+         }
+      }
+
+      if(!$operation)
+      {
+         $form_state->setErrorByName(NULL,
+            'No Operation selected');
+      }
+      else if(strcasecmp($operation, "Add Account") == 0)
+      {
+         $this->addAccountValidate($form_state, $name, $balance);
+      }
+   }
+
+   /**
     * Implements a form submit handler.
     *
     * The submitForm method is the default method called for any submit elements.
@@ -76,6 +113,34 @@ class AccountForm extends FormBase
     */
    public function submitForm(array &$form, FormStateInterface $form_state) 
    {
+      foreach($form_state->getUserInput() as $key=>$value)
+      {
+         if(strcasecmp($key, "op") == 0)
+         {
+            $operation = $value;
+         }
+         else if(strcasecmp($key, "name") == 0)
+         {
+            $name = $value;
+         }
+         else if(strcasecmp($key, "balance") == 0)
+         {
+            $balance = $value;
+         }
+         else if(strcasecmp($key, "categories") == 0)
+         {
+            $categories = $value;
+         }
+      }
+
+      if(strcasecmp($operation, "Add Account") == 0)
+      {
+         $this->addAccountSubmit($name, $balance);
+      }
+      else if(strcasecmp($operation, "Delete Selected") == 0)
+      {
+         $this->removeAccountSubmit($categories);
+      }
    }
 
    /**
@@ -86,42 +151,37 @@ class AccountForm extends FormBase
     * @param FormStateInterface $form_state
     *   Object describing the current state of the form.
     */
-   public function addAccountValidate(array &$form, FormStateInterface $form_state)
+   public function addAccountValidate(FormStateInterface $form_state, string $name, string $balance)
    {
-      $balance = str_replace('$', '', $form_state->getValue('balance'));
-      $name = $form_state->getValue('name');
-
       if(!$name)
       {
-         $form_state->setErrorByName('name', 'Please fill in the name field');
+         $form_state->setErrorByName('name', 
+            'Please fill in the name field');
       }
 
       if(!$balance)
       {
-         $form_state->setErrorByName('balance', 'Please fill in the balance field');
+         $form_state->setErrorByName('balance', 
+            'Please fill in the balance field');
       }
 
       // Validate the balance is formatted properly
       if(preg_match('/^[+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?$/', $balance) != 1)
       {
-         $form_state->setErrorByName('balance', 'Please enter a valid balance for the account');
+         $form_state->setErrorByName('balance', 
+            'Please enter a valid balance for the account');
       }
+
    }
 
    /**
     * Custom function for submitting an account add.
-    *
-    * @param array $form
-    *   The render array of the currently built form.
-    * @param FormStateInterface $form_state
-    *   Object describing the current state of the form.
     */
-   public function addAccountSubmit(array &$form, FormStateInterface $form_state)
+   public function addAccountSubmit(string $name, string $balance)
    {
       $uid = \Drupal::currentUser()->id();
-      $balance = str_replace('$', '', $form_state->getValue('balance'));
+      $balance = str_replace('$', '', $balance);
       $balance = preg_replace("/([^0-9\\.-])/i", "", $balance);
-      $name = $form_state->getValue('name');
 
       try
       {
@@ -147,16 +207,9 @@ class AccountForm extends FormBase
 
    /**
     * Custom function for removing an account.
-    *
-    * @param array $form
-    *   The render array of the currently built form.
-    * @param FormStateInterface $form_state
-    *   Object describing the current state of the form.
     */
-   public function removeAccountSubmit(array &$form, FormStateInterface $form_state)
+   public function removeAccountSubmit(array &$selectedIDs)
    {
-      $selectedIDs = array_filter($form_state->getValue('categories'));
-
       foreach($selectedIDs as $key => $value)
       {
          if($value)
@@ -212,8 +265,6 @@ class AccountForm extends FormBase
       $form['addAccount']['submit'] = array(
          '#type' => 'submit',
          '#value' => 'Add Account',
-         '#validate' => array('::addAccountValidate'),
-         '#submit' => array('::addAccountSubmit'),
       );
 
       return $form;
@@ -263,11 +314,9 @@ class AccountForm extends FormBase
          $form['accounts']['remove'] = array(
             '#type' => 'submit',
             '#value' => 'Delete Selected',
-            '#submit' => array('::removeAccountSubmit'),
          );
       }
 
       return $form;
-
    }
 }

@@ -11,16 +11,16 @@
 # Menu items corresponding to these URLs are defined separately in the
 # fapi_example.links.menu.yml file.
 budget.description:
-  path: 'budget'
-  defaults:
-    _controller:  '\Drupal\budget\Controller\Page::description'
-    _title: 'Budget'
-  requirements:
-    _permission: 'access content'
+   path: 'budget'
+   defaults:
+      _controller:  '\Drupal\budget\Controller\Page::description'
+      _title: 'Budget'
+   requirements:
+      _permission: 'access content'
 
 budget.account_form:
-  path: 'budget/account_form'
-  defaults:
-    _form:  '\Drupal\budget\Form\AccountForm'
-  requirements:
-    _permission: 'access content'
+   path: 'budget/account_form'
+   defaults:
+      _form:  '\Drupal\budget\Form\AccountForm'
+   requirements:
+      _permission: 'access content'

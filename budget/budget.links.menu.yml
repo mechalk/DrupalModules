@@ -1,6 +1,6 @@
-budget.accounts_form:
-  title: Accounts
-  description: Account management form
-  route_name: budget.account_form
-  menu_name: main
-  weight: 1
+budget.account_form:
+   title: Accounts
+   description: Account management form
+   route_name: budget.account_form
+   menu_name: main
+   weight: 1
