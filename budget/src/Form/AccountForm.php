@@ -90,12 +90,7 @@ class AccountForm extends FormBase
          }
       }
 
-      if(!$operation)
-      {
-         $form_state->setErrorByName(NULL,
-            'No Operation selected');
-      }
-      else if(strcasecmp($operation, "Add Account") == 0)
+      if(strcasecmp($operation, "Add Account") == 0)
       {
          $this->addAccountValidate($form_state, $name, $balance);
       }
@@ -131,6 +126,11 @@ class AccountForm extends FormBase
          {
             $categories = $value;
          }
+         else if(strcasecmp(substr($key,0,14), "delete_button_") == 0)
+         {
+            $operation = "Delete Individual";
+            $deleteId = substr($key,strrpos($key,'_')+1);
+         }
       }
 
       if(strcasecmp($operation, "Add Account") == 0)
@@ -140,6 +140,10 @@ class AccountForm extends FormBase
       else if(strcasecmp($operation, "Delete Selected") == 0)
       {
          $this->removeAccountSubmit($categories);
+      }
+      else if(strcasecmp($operation, "Delete Individual") == 0)
+      {
+         $this->removeAccountWithId($deleteId);
       }
    }
 
@@ -214,22 +218,33 @@ class AccountForm extends FormBase
       {
          if($value)
          {
-            // Get the account name from the database with this ID
-            $name = db_select('accounts', 'a')
-               ->fields('a', array('name'))
-               ->condition('id', $key)
-               ->execute()
-               ->fetchField();
-
-            $num_deleted = db_delete('accounts')
-               ->condition('id', $key)
-               ->execute();
-
-            if($num_deleted > 0)
-            {
-               drupal_set_message('Successfully removed ' . $name);
-            }
+            $this->removeAccountWithId($key);
          }
+      }
+   }
+
+   /**
+    * Remove an account from the database
+    *
+    * @param string id
+    *    ID of the account to remove
+    */
+   private function removeAccountWithId(string $id)
+   {
+      // Get the account name from the database with this ID
+      $name = db_select('accounts', 'a')
+         ->fields('a', array('name'))
+         ->condition('id', $id)
+         ->execute()
+         ->fetchField();
+
+      $num_deleted = db_delete('accounts')
+         ->condition('id', $id)
+         ->execute();
+
+      if($num_deleted > 0)
+      {
+         drupal_set_message('Successfully removed ' . $name);
       }
    }
 
@@ -284,9 +299,16 @@ class AccountForm extends FormBase
       setlocale(LC_MONETARY, 'en_US.UTF-8');
       foreach ($result as $account)
       {
+         $deleteButton = array(
+            '#type' => 'submit',
+            '#value' => t('Delete'),
+            '#name' => t('delete_button_' . $account->id),
+         );
+
          $categories[$account->id] = array(
             'name' => $account->name,
             'balance' => money_format('%.2n', $account->balance),
+            'delete' => array('data'=>$deleteButton),
          );
       }
 
@@ -302,6 +324,7 @@ class AccountForm extends FormBase
          $header = array(
             'name' => t('Account Name'),
             'balance' => t('Account Balance'),
+            'delete' => t('Delete'),
          );
 
          $form['accounts']['categories'] = array(
