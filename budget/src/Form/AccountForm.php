@@ -14,16 +14,55 @@ use Drupal\Core\Form\FormStateInterface;
  *
  * @see \Drupal\Core\Form\FormBase
  */
-class AccountForm extends FormBase 
+class AccountForm extends FormBase
 {
-   public static function getAccountContents($entry = array())
+   /**
+    * Returns the contents of the accounts in the database.
+    *
+    * If the id is provided, then the contents for that id are returned.
+    * Otherwise, the entire account database table is returned
+    *
+    * @param string $id
+    *    The ID of the account information to return
+    * @return array
+    *    Account contents from the database
+    */
+   public static function getAccountContents(string $id=NULL)
    {
-      $query = db_select('accounts', 't')
-         ->fields('t', array('id', 'uid', 'name', 'balance'))
-         ->orderby('name')
-         ->execute();
+      if($id)
+      {
+         $query = db_select('accounts', 't')
+            ->fields('t', array('id', 'uid', 'name', 'balance'))
+            ->orderby('name')
+            ->condition('id', $id)
+            ->execute();
+      }
+      else
+      {
+         $query = db_select('accounts', 't')
+            ->fields('t', array('id', 'uid', 'name', 'balance'))
+            ->orderby('name')
+            ->execute();
+      }
 
       return $query;
+   }
+
+   /**
+    * Returns the number of accounts in the database
+    *
+    * @return int
+    *    Number of accounts in the database
+    */
+   public static function getNumAccounts()
+   {
+      $count = db_select('accounts')
+         ->fields(NULL, array('field'))
+         ->countQuery()
+         ->execute()
+         ->fetchField();
+
+      return intval($count);
    }
 
    /**
@@ -40,21 +79,26 @@ class AccountForm extends FormBase
     * @return array
     *   The render array defining the elements of the form.
     */
-   public function buildForm(array $form, FormStateInterface $form_state) 
+   public function buildForm(array $form, FormStateInterface $form_state)
    {
       $form['account'] = array();
-      $form['account'][] = $this->getAccountAddForm();
-      $form['account'][] = $this->getAccountManageForm();
+
+      if($form_state->has('page_num') &&
+         $form_state->get('page_num') == 2)
+      {
+         $form['account'][] = $this->getAccountAddUpdateForm($form_state->get('modifyId'));
+      }
+      else
+      {
+         $form['account'][] = $this->getAccountAddUpdateForm();
+         $form['account'][] = $this->getAccountManageForm();
+      }
 
       return $form;
    }
 
    /**
     * Getter method for Form ID.
-    *
-    * The form ID is used in implementations of hook_form_alter() to allow other
-    * modules to alter the render array built by this form controller.  it must
-    * be unique site wide. It normally starts with the providing module's name.
     *
     * @return string
     *   The unique ID of the form defined by this class.
@@ -88,11 +132,19 @@ class AccountForm extends FormBase
          {
             $balance = $value;
          }
+         else if(strcasecmp($key, "categories") == 0)
+         {
+            $categories = $value;
+         }
       }
 
       if(strcasecmp($operation, "Add Account") == 0)
       {
-         $this->addAccountValidate($form_state, $name, $balance);
+         $this->addUpdateAccountValidate($form_state, $name, $balance);
+      }
+      else if(strcasecmp($operation, "Update") == 0)
+      {
+         $this->addUpdateAccountValidate($form_state, $name, $balance);
       }
    }
 
@@ -124,12 +176,17 @@ class AccountForm extends FormBase
          }
          else if(strcasecmp($key, "categories") == 0)
          {
-            $categories = $value;
+            $selectedIds = $value;
          }
          else if(strcasecmp(substr($key,0,14), "delete_button_") == 0)
          {
             $operation = "Delete Individual";
             $deleteId = substr($key,strrpos($key,'_')+1);
+         }
+         else if(strcasecmp(substr($key,0,14), "modify_button_") == 0)
+         {
+            $operation = "Modify Individual";
+            $modifyId = substr($key,strrpos($key,'_')+1);
          }
       }
 
@@ -139,23 +196,35 @@ class AccountForm extends FormBase
       }
       else if(strcasecmp($operation, "Delete Selected") == 0)
       {
-         $this->removeAccountSubmit($categories);
+         $this->removeSelectedAccounts($selectedIds);
       }
       else if(strcasecmp($operation, "Delete Individual") == 0)
       {
          $this->removeAccountWithId($deleteId);
       }
+      else if(strcasecmp($operation, "Modify Individual") == 0)
+      {
+         $form_state->set('page_num', 2)
+            ->set('modifyId', $modifyId)
+            ->setRebuild(TRUE);
+      }
+      else if(strcasecmp($operation, "Update") == 0)
+      {
+         $this->updateAccountSubmit($name, $balance, $form_state->get('modifyId'));
+      }
    }
 
    /**
-    * Custom validation function for validating an account add.
+    * Custom validation function for validating an account add or update
     *
-    * @param array $form
-    *   The render array of the add form.
     * @param FormStateInterface $form_state
     *   Object describing the current state of the form.
+    * @param string $name
+    *    Name of the account to validate
+    * @param string $balance
+    *    Balance of the account to validate
     */
-   public function addAccountValidate(FormStateInterface $form_state, string $name, string $balance)
+   private function addUpdateAccountValidate(FormStateInterface $form_state, string $name, string $balance)
    {
       if(!$name)
       {
@@ -172,16 +241,20 @@ class AccountForm extends FormBase
       // Validate the balance is formatted properly
       if(preg_match('/^[+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?$/', $balance) != 1)
       {
-         $form_state->setErrorByName('balance', 
+         $form_state->setErrorByName('balance',
             'Please enter a valid balance for the account');
       }
-
    }
 
    /**
-    * Custom function for submitting an account add.
+    * Custom function for adding an account
+    *
+    * @param string name
+    *    Name to use for the account
+    * @param string balance
+    *    Balance to use for the account
     */
-   public function addAccountSubmit(string $name, string $balance)
+   private function addAccountSubmit(string &$name, string &$balance)
    {
       $uid = \Drupal::currentUser()->id();
       $balance = str_replace('$', '', $balance);
@@ -210,9 +283,52 @@ class AccountForm extends FormBase
    }
 
    /**
-    * Custom function for removing an account.
+    * Custom function for updating an account
+    *
+    * @param string $name
+    *    Name to use for the account
+    * @param string $balance
+    *    Balance to use for the account
+    * @param string $id
+    *    ID of the account to update
     */
-   public function removeAccountSubmit(array &$selectedIDs)
+   private function updateAccountSubmit(string &$name, string &$balance, string &$id)
+   {
+      if($id)
+      {
+         $balance = str_replace('$', '', $balance);
+         $balance = preg_replace("/([^0-9\\.-])/i", "", $balance);
+
+         try
+         {
+            db_update('accounts')
+               ->fields(array(
+                  'name' => $name,
+                  'balance' => $balance,
+               ))
+               ->condition('id', $id)
+               ->execute();
+
+            setlocale(LC_MONETARY, 'en_US.UTF-8');
+            $debug_message = "Successfully updated account " . $name . " with a balance of " . money_format('%.2n', $balance);
+            drupal_set_message($debug_message, 'status');
+         }
+         catch (\Exception $e)
+         {
+            $debug_message = 'db_insert failed. Message=' . $e->getMessage();
+            $debug_message .= ', Query=' . $e->query_string;
+            drupal_set_message($debug_message, 'error');
+         }
+      }
+   }
+
+   /**
+    * Custom function for removing all selected accounts from the database
+    *
+    * @param array selectedIDs
+    *    Array of the selected IDs from the account table
+    */
+   private function removeSelectedAccounts(array &$selectedIDs)
    {
       foreach($selectedIDs as $key => $value)
       {
@@ -229,7 +345,7 @@ class AccountForm extends FormBase
     * @param string id
     *    ID of the account to remove
     */
-   private function removeAccountWithId(string $id)
+   private function removeAccountWithId(string &$id)
    {
       // Get the account name from the database with this ID
       $name = db_select('accounts', 'a')
@@ -250,17 +366,26 @@ class AccountForm extends FormBase
 
    /**
     * Returns the accounts add form
+    *
+    * Builds eith the account add form or the account update form. If the
+    * input parameter $modifyId is provided, then the account update form
+    * will be returned. The modifyId is the ID of the account in the database
+    * that will be updated. The name and balance fields are pre populated with
+    * the values from the database.
+    *
+    * @param string $modifyId
+    *    ID field from the database of the account to modify
+    * @return array
+    *    The account add form
     */
-   private function getAccountAddForm()
+   private function getAccountAddUpdateForm(string &$modifyId=NULL)
    {
       $form = array();
 
       // Create the addAcount form
       $form['addAccount'] = array(
-         '#type' => 'fieldset',
+         '#type' => 'details',
          '#title' => t('Add a new account'),
-         '#collapsible' => TRUE,
-         '#collapsed' => FALSE,
       );
 
       $form['addAccount']['name'] = array(
@@ -277,18 +402,53 @@ class AccountForm extends FormBase
          '#maxLength' => 40,
       );
 
-      $form['addAccount']['submit'] = array(
-         '#type' => 'submit',
-         '#value' => 'Add Account',
-      );
+      if($modifyId)
+      {
+         $result = $this->getAccountContents($modifyId);
+         foreach($result as $account)
+         {
+            $form['addAccount']['name']['#value'] = $account->name;
+            $form['addAccount']['balance']['#value'] = $account->balance;
+            $form['addAccount']['#title'] = t("Update account");
+            $form['addAccount']['#open'] = TRUE;
+         }
 
+         $form['addAccount']['submit'] = array(
+            '#type' => 'submit',
+            '#value' => 'Update',
+         );
+
+         $form['addAccount']['cancel'] = array(
+            '#type' => 'submit',
+            '#value' => 'Cancel',
+         );
+      }
+      else
+      {
+         $count = $this->getNumAccounts();
+
+         if($count == 0)
+         {
+            $form['addAccount']['#open'] = TRUE;
+         }
+
+         $form['addAccount']['submit'] = array(
+            '#type' => 'submit',
+            '#value' => 'Add Account',
+         );
+      }
       return $form;
    }
 
    /**
     * Returns the account manaagment form
+    *
+    * Returns a tableselect showing the values for all accounts in the database
+    *
+    * @return array
+    *    The account management form
     */
-   function getAccountManageForm()
+   private function getAccountManageForm()
    {
       $form = array();
 
@@ -305,9 +465,16 @@ class AccountForm extends FormBase
             '#name' => t('delete_button_' . $account->id),
          );
 
+         $modifyButton = array(
+            '#type' => 'submit',
+            '#value' => t('Modify'),
+            '#name' => t('modify_button_' . $account->id),
+         );
+
          $categories[$account->id] = array(
             'name' => $account->name,
             'balance' => money_format('%.2n', $account->balance),
+            'modify' => array('data'=>$modifyButton),
             'delete' => array('data'=>$deleteButton),
          );
       }
@@ -315,15 +482,15 @@ class AccountForm extends FormBase
       if (!empty($categories))
       {
          $form['accounts'] = array(
-            '#type' => 'fieldset',
+            '#type' => 'details',
             '#title' => t("Manage Accounts"),
-            '#collapsible' => TRUE,
-            '#collapsed' => FALSE,
+            '#open' => TRUE,
          );
 
          $header = array(
             'name' => t('Account Name'),
             'balance' => t('Account Balance'),
+            'modify' => t('Modify'),
             'delete' => t('Delete'),
          );
 
