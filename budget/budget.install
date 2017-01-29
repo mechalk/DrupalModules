@@ -45,5 +45,60 @@ function budget_schema()
       'primary key' => array('id'),
    );
 
+   // Create the budget categories table
+   $schema['budgetCategories'] = array(
+      'description' => t('The base table for budget categories'),
+      'fields' => array(
+         'id' => array(
+            'description' => 'The primary identifier for a budget category',
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'uid' => array(
+            'description' => 'ID for the user that last modified this category',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'category' => array(
+            'description' => 'The budget category',
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => TRUE,
+         ),
+         'allocation' => array(
+            'description' => 'The amount allocated to this category',
+            'type' => 'float',
+            'not null' => TRUE
+         ),
+      ),
+      'primary key' => array('id'),
+   );
+
+   $schema['incomeCategories'] = array(
+      'description' => t('The base table for income categories'),
+      'fields' => array(
+         'id' => array(
+            'description' => 'The primary identifier for an income category',
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'uid' => array(
+            'description' => 'ID for the user that last modified this category',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'category' => array(
+            'description' => 'The income category',
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => TRUE,
+         ),
+      ),
+      'primary key' => array('id'),
+   );
    return $schema;
 }

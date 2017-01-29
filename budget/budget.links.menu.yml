@@ -4,3 +4,17 @@ budget.account_form:
    route_name: budget.account_form
    menu_name: main
    weight: 1
+
+budget.budget_category_form:
+   title: Budget Categories
+   description: Budget category management form
+   route_name: budget.budget_category_form
+   menu_name: main
+   weight: 2
+
+budget.income_category_form:
+   title: Income Categories
+   description: Income category management form
+   route_name: budget.income_category_form
+   menu_name: main
+   weight: 3

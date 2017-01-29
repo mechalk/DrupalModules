@@ -24,3 +24,17 @@ budget.account_form:
       _form:  '\Drupal\budget\Form\AccountForm'
    requirements:
       _permission: 'access content'
+
+budget.budget_category_form:
+   path: 'budget/budget_category_form'
+   defaults:
+      _form: '\Drupal\budget\Form\BudgetCategoryForm'
+   requirements:
+      _permission: 'access content'
+
+budget.income_category_form:
+   path: 'budget/income_category_form'
+   defaults:
+      _form: '\Drupal\budget\Form\IncomeCategoryForm'
+   requirements:
+      _permission: 'access content'

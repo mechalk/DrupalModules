@@ -9,9 +9,6 @@ use Drupal\Core\Form\FormStateInterface;
 /**
  * Implements the AccountForm form controller.
  *
- * This example demonstrates a simple form with a singe text input element. We
- * extend FormBase which is the simplest form base class used in Drupal.
- *
  * @see \Drupal\Core\Form\FormBase
  */
 class AccountForm extends FormBase
