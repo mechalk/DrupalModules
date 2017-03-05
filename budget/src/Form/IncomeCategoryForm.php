@@ -215,6 +215,20 @@ class IncomeCategoryForm extends FormBase
          $form_state->setErrorByName('incomeCategory', 
             'Please fill in the category field');
       }
+      else
+      {
+         $result = db_select('incomeCategories', 'i')
+            ->fields('i')
+            ->condition('category', $category)
+            ->execute()
+            ->fetchField();
+
+         if(!empty($result))
+         {
+            $form_state->setErrorByName('incomeCategory',
+               "Income Category [" . $category . "] already exists");
+         }
+      }
    }
 
    /**

@@ -17,4 +17,11 @@ budget.income_category_form:
    description: Income category management form
    route_name: budget.income_category_form
    menu_name: main
-   weight: 3
+   weight: 4
+
+budget.income_form:
+   title: Income
+   description: Income management form
+   route_name: budget.income_form
+   menu_name: main
+   weight: 5

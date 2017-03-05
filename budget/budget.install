@@ -100,5 +100,46 @@ function budget_schema()
       ),
       'primary key' => array('id'),
    );
+
+   $schema['income'] = array(
+      'description' => t('The base table for income'),
+      'fields' => array(
+         'id' => array(
+            'description' => 'The primary identifier for an income transaction',
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'uid' => array(
+            'description' => 'ID for the user that entered this income transaction',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'timestamp' => array(
+            'description' => 'Timestamp for the income transaction in seconds',
+            'type' => 'int',
+            'not null' => TRUE,
+         ),
+         'amount' => array(
+            'description' => 'Value of the income transaction',
+            'type' => 'float',
+            'not null' => TRUE,
+         ),
+         'category' => array(
+            'description' => 'Category for the transaction',
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => TRUE,
+         ),
+        'notes' => array(
+            'description' => "Notes for the transaction",
+            'type' => 'varchar',
+            'length' => 1000,
+         ),
+      ),
+      'primary key' => array('id'),
+   );
+
    return $schema;
 }

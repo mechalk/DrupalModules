@@ -38,3 +38,10 @@ budget.income_category_form:
       _form: '\Drupal\budget\Form\IncomeCategoryForm'
    requirements:
       _permission: 'access content'
+
+budget.income_form:
+   path: 'budget/income_form'
+   defaults:
+      _form: '\Drupal\budget\Form\IncomeForm'
+   requirements:
+      _permission: 'access content'

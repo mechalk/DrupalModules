@@ -223,6 +223,21 @@ class BudgetCategoryForm extends FormBase
          $form_state->setErrorByName('budgetCategory', 
             'Please fill in the category field');
       }
+      else
+      {
+         // Category name is set. Make sure the same category does not already exist
+         $result = db_select('budgetCategories', 'b')
+            ->fields('b')
+            ->condition('category', $category)
+            ->execute()
+            ->fetchField();
+
+         if(!empty($result))
+         {
+            $form_state->setErrorByName('budgetCategory',
+               "Budget Category [" . $category . "] already exists");
+         }
+      }
 
       if(!$allocation)
       {
