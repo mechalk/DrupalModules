@@ -12,6 +12,13 @@ budget.budget_category_form:
    menu_name: main
    weight: 2
 
+budget.transaction_form:
+   title: Transactions
+   description: Transaction management form
+   route_name: budget.transaction_form
+   menu_name: main
+   weight: 3
+
 budget.income_category_form:
    title: Income Categories
    description: Income category management form

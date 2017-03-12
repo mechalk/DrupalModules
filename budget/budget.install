@@ -76,6 +76,53 @@ function budget_schema()
       'primary key' => array('id'),
    );
 
+   $schema['transactions'] = array(
+      'description' => t('The base table for transactions'),
+      'fields' => array(
+         'id' => array(
+            'description' => 'The primary identifier for a transaction',
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'uid' => array(
+            'description' => 'ID for the user that entered this transaction',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+         ),
+         'payee' => array(
+            'description' => 'Receiver of the transaction',
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => TRUE,
+         ),
+         'timestamp' => array(
+            'description' => 'Timestamp for the transaction in seconds',
+            'type' => 'int',
+            'not null' => TRUE,
+         ),
+         'amount' => array(
+            'description' => 'Value of the transaction',
+            'type' => 'float',
+            'not null' => TRUE,
+         ),
+         'category' => array(
+            'description' => 'Budget category for the transaction',
+            'type' => 'varchar',
+            'length' => 100,
+            'not null' => TRUE,
+         ),
+         'tax_deduct' => array(
+            'description' => 'Indicates if transaction is tax deductible',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+         ),
+      ),
+      'primary key' => array('id'),
+   );
+
    $schema['incomeCategories'] = array(
       'description' => t('The base table for income categories'),
       'fields' => array(

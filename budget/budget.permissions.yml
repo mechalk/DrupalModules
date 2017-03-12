@@ -1,0 +1,4 @@
+budget budget_permission:
+   title: "Budget Permission"
+   description: "Permission for the budget module"
+   restrict access: true

@@ -6,7 +6,7 @@
 # form controller implementation.
 
 # Access to these paths is restricted to users with the permission
-# 'access content'. This is notated as _permission: 'access content'.
+# 'budget budget_permission'. This is notated as _permission: 'budget budget_permission'.
 
 # Menu items corresponding to these URLs are defined separately in the
 # fapi_example.links.menu.yml file.
@@ -16,32 +16,39 @@ budget.description:
       _controller:  '\Drupal\budget\Controller\Page::description'
       _title: 'Budget'
    requirements:
-      _permission: 'access content'
+      _permission: 'budget budget_permission'
 
 budget.account_form:
    path: 'budget/account_form'
    defaults:
       _form:  '\Drupal\budget\Form\AccountForm'
    requirements:
-      _permission: 'access content'
+      _permission: 'budget budget_permission'
 
 budget.budget_category_form:
    path: 'budget/budget_category_form'
    defaults:
       _form: '\Drupal\budget\Form\BudgetCategoryForm'
    requirements:
-      _permission: 'access content'
+      _permission: 'budget budget_permission'
+
+budget.transaction_form:
+   path: 'budget/transaction_form'
+   defaults:
+      _form: '\Drupal\budget\Form\TransactionForm'
+   requirements:
+      _permission: 'budget budget_permission'
 
 budget.income_category_form:
    path: 'budget/income_category_form'
    defaults:
       _form: '\Drupal\budget\Form\IncomeCategoryForm'
    requirements:
-      _permission: 'access content'
+      _permission: 'budget budget_permission'
 
 budget.income_form:
    path: 'budget/income_form'
    defaults:
       _form: '\Drupal\budget\Form\IncomeForm'
    requirements:
-      _permission: 'access content'
+      _permission: 'budget budget_permission'

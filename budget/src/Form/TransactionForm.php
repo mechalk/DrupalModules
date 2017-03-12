@@ -8,30 +8,30 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element\Date;
 
 /**
- * Implements the IncomeForm form controller.
+ * Implements the TransactionForm form controller.
  *
  * @see \Drupal\Core\Form\FormBase
  */
-class IncomeForm extends FormBase
+class TransactionForm extends FormBase
 {
-   /** Returns the income category select array to add in forms
+   /** Returns the transaction category select array to add in forms
     *
     * @param string $defaultCategory
     *    Selected category to return
     * @return array
     *    Category select array
     */
-   private function getIncomeCategorySelect(string &$defaultCategory=NULL)
+   private function getBudgetCategorySelect(string &$defaultCategory=NULL)
    {
       $categorySelect = array();
 
-      // Get the income contents from the database
-      $result = IncomeCategoryForm::getIncomeCategoryContents($category);
+      // Get the budget category contents from the database
+      $result = BudgetCategoryForm::getBudgetCategoryContents($category);
 
       $categories = array();
-      foreach($result as $incomeCategory)
+      foreach($result as $budgetCategory)
       {
-         $categories[$incomeCategory->id] = $incomeCategory->category;
+         $categories[$budgetCategory->id] = $budgetCategory->category;
       }
 
       if(count($categories))
@@ -59,30 +59,30 @@ class IncomeForm extends FormBase
    }
 
    /**
-    * Returns the contents of the income table in the database.
+    * Returns the contents of the transaction table in the database.
     *
     * If the id is provided, then the contents for that id are returned.
-    * Otherwise, the entire income database table is returned
+    * Otherwise, the entire transaction database table is returned
     *
     * @param string $startTime
-    *    The start time of the income to return
+    *    The start time of the transaction to return
     * @param string $endTime
-    *    The end time of the income to return
+    *    The end time of the transaction to return
     * @return array
-    *    Income contents from the database
+    *    Transaction contents from the database
     */
-   public static function getIncomeContents(string &$id=NULL, string &$startTime=NULL, string &$endTime=NULL, array &$categories)
+   public static function getTransactionContents(string &$id=NULL, string &$startTime=NULL, string &$endTime=NULL, array &$categories = null, string &$taxDeduct = null)
    {
       if($id != NULL)
       {
-         $query = db_select('income', 'i')
-            ->fields('i', array('id', 'uid', 'timestamp', 'amount', 'category', 'notes'))
+         $query = db_select('transactions', 't')
+            ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category', 'tax_deduct'))
             ->condition('id', $id);
       }
       else if($startTime && $endTime)
       {
-         $query = db_select('income', 'i')
-            ->fields('i', array('id', 'uid', 'timestamp', 'amount', 'category', 'notes'))
+         $query = db_select('transactions', 't')
+            ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category', 'tax_deduct'))
             ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
             ->orderby('timestamp', 'DESC');
 
@@ -90,11 +90,16 @@ class IncomeForm extends FormBase
          {
             $query->condition('category', $categories, 'IN');
          }
+
+         if($taxDeduct)
+         {
+            $query->condition('tax_deduct', $taxDeduct);
+         }
       }
       else
       {
-         $query = db_select('income', 'i')
-            ->fields('i', array('id', 'uid', 'timestamp', 'amount', 'category', 'notes'))
+         $query = db_select('transactions', 't')
+            ->fields('t', array('id', 'uid', 'payee', 'timestamp', 'amount', 'category', 'tax_deduct'))
             ->orderby('timestamp', 'DESC');
       }
 
@@ -103,16 +108,16 @@ class IncomeForm extends FormBase
    }
 
    /**
-    * Returns the number of Income entries in the database
+    * Returns the number of transaction entries in the database
     *
     * @return int
-    *    Number of income entries in the database
+    *    Number of transaction entries in the database
     */
-   public static function getNumIncomes(string &$startTime=NULL, string &$endTime=NULL)
+   public static function getNumTransactions(string &$startTime=NULL, string &$endTime=NULL)
    {
       if($startTime && $endTime)
       {
-         $count = db_select('income')
+         $count = db_select('transactions')
             ->fields(NULL, array('field'))
             ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
             ->countQuery()
@@ -121,7 +126,7 @@ class IncomeForm extends FormBase
       }
       else
       {
-         $count = db_select('income')
+         $count = db_select('transactions')
             ->fields(NULL, array('field'))
             ->countQuery()
             ->execute()
@@ -132,7 +137,7 @@ class IncomeForm extends FormBase
    }
 
    /**
-    * Build the income form.
+    * Build the transaction form.
     *
     * @param array $form
     *   Default form array structure.
@@ -144,18 +149,18 @@ class IncomeForm extends FormBase
     */
    public function buildForm(array $form, FormStateInterface $form_state)
    {
-      $form['income'] = array();
+      $form['transaction'] = array();
 
       if($form_state->has('page_num') &&
          $form_state->get('page_num') == 2)
       {
-         $form['income'][] = $this->getIncomeAddUpdateForm($form_state->get('modifyId'));
+         $form['transaction'][] = $this->getTransactionAddUpdateForm($form_state->get('modifyId'));
       }
       else
       {
-         $form['income'][] = $this->getIncomeAddUpdateForm();
-         $form['income'][] = $this->getIncomeFilterForm();
-         $form['income'][] = $this->getIncomeManageForm();
+         $form['transaction'][] = $this->getTransactionAddUpdateForm();
+         $form['transaction'][] = $this->getTransactionFilterForm();
+         $form['transaction'][] = $this->getTransactionManageForm();
       }
 
       return $form;
@@ -169,7 +174,7 @@ class IncomeForm extends FormBase
     */
    public function getFormId() 
    {
-      return 'income_form';
+      return 'transaction_form';
    }
 
    /**
@@ -188,6 +193,10 @@ class IncomeForm extends FormBase
          {
             $operation = $value;
          }
+         else if(strcasecmp($key, "payee") == 0)
+         {
+            $payee = $value;
+         }
          else if(strcasecmp($key, "date") == 0)
          {
             $timestamp = $value;
@@ -200,19 +209,19 @@ class IncomeForm extends FormBase
          {
             $category = $value;
          }
-         else if(strcasecmp($key, "notes") == 0)
+         else if(strcasecmp($key, "taxDeduct") == 0)
          {
-            $notes = $value;
+            $taxDeductible = $value;
          }
       }
 
-      if(strcasecmp($operation, "Add Income") == 0)
+      if(strcasecmp($operation, "Add Transaction") == 0)
       {
-         $this->addUpdateIncomeValidate($form_state, $timestamp, $amount, $category, $notes);
+         $this->addUpdateTransactionValidate($form_state, $timestamp, $payee, $amount, $category, $taxDeductible);
       }
       else if(strcasecmp($operation, "Update") == 0)
       {
-         $this->addUpdateIncomeValidate($form_state, $timestamp, $amount, $category, $notes);
+         $this->addUpdateTransactionValidate($form_state, $timestamp, $payee, $amount, $category, $taxDeductible);
       }
    }
 
@@ -242,6 +251,10 @@ class IncomeForm extends FormBase
          {
             $endDate = $value;
          }
+         else if(strcasecmp($key, "payee") == 0)
+         {
+            $payee = $value;
+         }
          else if(strcasecmp($key, "date") == 0)
          {
             $timestamp = $value;
@@ -258,9 +271,9 @@ class IncomeForm extends FormBase
          {
             $filterCategory = $value;
          }
-         else if(strcasecmp($key, "notes") == 0)
+         else if(strcasecmp($key, "taxDeduct") == 0)
          {
-            $notes = $value;
+            $taxDeductible = $value;
          }
          else if(strcasecmp($key, "categories") == 0)
          {
@@ -278,17 +291,17 @@ class IncomeForm extends FormBase
          }
       }
 
-      if(strcasecmp($operation, "Add Income") == 0)
+      if(strcasecmp($operation, "Add Transaction") == 0)
       {
-         $this->addIncomeSubmit($timestamp, $amount, $category, $notes);
+         $this->addTransactionSubmit($timestamp, $payee, $amount, $category, $taxDeductible);
       }
       else if(strcasecmp($operation, "Delete Selected") == 0)
       {
-         $this->removeSelectedIncomes($selectedIds);
+         $this->removeSelectedTransactions($selectedIds);
       }
       else if(strcasecmp($operation, "Delete Individual") == 0)
       {
-         $this->removeIncomeWithId($deleteId);
+         $this->removeTransactionWithId($deleteId);
       }
       else if(strcasecmp($operation, "Modify Individual") == 0)
       {
@@ -298,11 +311,11 @@ class IncomeForm extends FormBase
       }
       else if(strcasecmp($operation, "Update") == 0)
       {
-         $this->updateIncomeSubmit($timestamp, $amount, $category, $notes, $form_state->get('modifyId'));
+         $this->updateTransactionSubmit($timestamp, $payee, $amount, $category, $taxDeductible, $form_state->get('modifyId'));
       }
       else if(strcasecmp($operation, "Filter") == 0)
       {
-         $this->filterIncomeSubmit($startDate, $endDate, $filterCategory);
+         $this->filterTransactionSubmit($startDate, $endDate, $taxDeductible, $filterCategory);
       }
       else if(strcasecmp($operation, "Reset") == 0)
       {
@@ -311,25 +324,31 @@ class IncomeForm extends FormBase
    }
 
    /**
-    * Custom validation function for validating an income add or update
+    * Custom validation function for validating an transaction add or update
     *
     * @param FormStateInterface $form_state
     *    Object describing the current state of the form.
     * @param string $timestamp
-    *    Timestamp of the income
+    *    Timestamp of the transaction
     * @param string $amount
-    *    Amount of the income
+    *    Amount of the transaction
     * @param string $category
-    *    Category for the income
+    *    Category for the transaction
     * @param string $notes
-    *    Notes for the income
+    *    Notes for the transaction
     */
-   private function addUpdateIncomeValidate(FormStateInterface $form_state, string &$timestamp, string &$amount, string &$category, string &$notes)
+   private function addUpdateTransactionValidate(FormStateInterface $form_state, string &$timestamp, string &$payee, string &$amount, string &$category, string &$taxDeductible = null)
    {
       if(!$timestamp)
       {
          $form_state->setErrorByName('date',
             'Please enter a valid date for the transaction');
+      }
+
+      if(!$payee)
+      {
+         $form_state->setErrorByName('payee',
+            'Please enter a payee name for the transaction');
       }
 
       // Validate the amount is formatted properly
@@ -340,7 +359,7 @@ class IncomeForm extends FormBase
       else if(preg_match('/^[+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{1,2})?$/', $amount) != 1)
       {
          $form_state->setErrorByName('amount',
-            'Please enter a valid amount for the income');
+            'Please enter a valid amount for the transaction');
       }
 
       // Validate that the category ID is in the database
@@ -351,7 +370,7 @@ class IncomeForm extends FormBase
       }
       else
       {
-         $result = IncomeCategoryForm::getIncomeCategoryContents($category)
+         $result = BudgetCategoryForm::getBudgetCategoryContents($category)
             ->fetchField();
 
          if(empty($result))
@@ -368,27 +387,27 @@ class IncomeForm extends FormBase
 
       $currentTimeString = $currentMonth . "/" . $currentDay . "/" . $currentYear;
       $currentTime = strtotime($currentTimeString);
-      $incomeTime = strtotime($timestamp);
+      $transactionTime = strtotime($timestamp);
 
-      if($incomeTime > $currentTime)
+      if($transactionTime > $currentTime)
       {
          $form_state->setErrorByName('date', 'Date cannot be in the future');
       }
    }
 
    /**
-    * Custom function for adding an income entry
+    * Custom function for adding an transaction entry
     *
     * @param string $timestamp
-    *    Timestamp of the income
+    *    Timestamp of the transaction
     * @param string $amount
-    *    Amount of the income
+    *    Amount of the transaction
     * @param string $category
-    *    Category for the income
+    *    Category for the transaction
     * @param string $notes
-    *    Notes for the income
+    *    Notes for the transaction
     */
-   private function addIncomeSubmit(string &$timestamp, string &$amount, string &$category, string &$notes)
+   private function addTransactionSubmit(string &$timestamp, string &$payee, string &$amount, string &$category, string &$taxDeductible = null)
    {
       $uid = \Drupal::currentUser()->id();
       $amount = str_replace('$', '', $amount);
@@ -398,18 +417,24 @@ class IncomeForm extends FormBase
 
       try
       {
-         db_insert('income')
+         if($taxDeductible == null)
+         {
+            $taxDeductible = 0;
+         }
+
+         db_insert('transactions')
             ->fields(array(
                'uid' => $uid,
+               'payee' => $payee,
                'timestamp' => $currentTime,
                'amount' => $amount,
                'category' => $category,
-               'notes' => $notes,
+               'tax_deduct' => $taxDeductible,
             ))
             ->execute();
 
          setlocale(LC_MONETARY, 'en_US.UTF-8');
-         $debug_message = "Successfully added income " . money_format('%.2n', $amount) . " on " . $timestamp;
+         $debug_message = "Successfully added transaction " . money_format('%.2n', $amount) . " on " . $timestamp;
          drupal_set_message($debug_message, 'status');
       }
       catch (\Exception $e)
@@ -420,7 +445,7 @@ class IncomeForm extends FormBase
       }
    }
 
-   private function filterIncomeSubmit(string &$startDate, string &$endDate, array &$categories = null)
+   private function filterTransactionSubmit(string &$startDate, string &$endDate, string &$taxDeductible = null, array &$categories = null)
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
 
@@ -432,40 +457,45 @@ class IncomeForm extends FormBase
       $startTime = strtotime($startDate);
       $tempstore->set('startTime', $startTime);
 
-      $tempstore->set('income_categories', $categories);
+      $tempstore->set('transaction_categories', $categories);
+      $tempstore->set('taxDeduct', $taxDeductible);
    }
 
    private function filterResetSubmit()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
+
+      // Reset the end time
       $endTime = time();
       $tempstore->set('endTime', $endTime);
       $endYear = date("Y", $endTime);
 
-      // Get the start time from the session variable
       $startTime = strtotime(t("1/1/" . $endYear));
       $tempstore->set('startTime', $startTime);
 
-      $categorySelect = $this->getIncomeCategorySelect();
+      $categorySelect = $this->getBudgetCategorySelect();
       $defaultCategories = array_keys($categorySelect['#options']);
-      $tempstore->set('income_categories', $defaultCategories);
+      $tempstore->set('transaction_categories', $defaultCategories);
+
+      $taxDeductible = 0;
+      $tempstore->set('taxDeduct', $taxDeductible);
    }
 
    /**
-    * Custom function for updating an income entry
+    * Custom function for updating an transaction entry
     *
     * @param string $timestamp
-    *    Timestamp of the income
+    *    Timestamp of the transaction
     * @param string $amount
-    *    Amount of the income
+    *    Amount of the transaction
     * @param string $category
-    *    Category for the income
+    *    Category for the transaction
     * @param string $notes
-    *    Notes for the income
+    *    Notes for the transaction
     * @param string $id
-    *    ID of the income entry to update
+    *    ID of the transaction entry to update
     */
-   private function updateIncomeSubmit(string &$timestamp, string &$amount, string &$category, string &$notes, string &$id)
+   private function updateTransactionSubmit(string &$timestamp, string &$payee, string &$amount, string &$category, string &$taxDeductible = null, string &$id)
    {
       if($id)
       {
@@ -476,18 +506,24 @@ class IncomeForm extends FormBase
 
          try
          {
-            db_update('income')
+            if($taxDeductible == null)
+            {
+               $taxDeductible = 0;
+            }
+
+            db_update('transactions')
                ->fields(array(
+                  'payee' => $payee,
                   'timestamp' => $currentTimestamp,
                   'amount' => $amount,
                   'category' => $category,
-                  'notes' => $notes,
+                  'tax_deduct' => $taxDeductible,
                ))
                ->condition('id', $id)
                ->execute();
 
             setlocale(LC_MONETARY, 'en_US.UTF-8');
-            $debug_message = "Successfully updated income " . money_format('%.2n', $amount) . " on " . $timestamp;
+            $debug_message = "Successfully updated transaction " . money_format('%.2n', $amount) . " on " . $timestamp;
             drupal_set_message($debug_message, 'status');
          }
          catch (\Exception $e)
@@ -500,134 +536,141 @@ class IncomeForm extends FormBase
    }
 
    /**
-    * Custom function for removing all selected incomes from the database
+    * Custom function for removing all selected transactions from the database
     *
     * @param array selectedIDs
-    *    Array of the selected IDs from the income table
+    *    Array of the selected IDs from the transaction table
     */
-   private function removeSelectedIncomes(array &$selectedIDs)
+   private function removeSelectedTransactions(array &$selectedIDs)
    {
       foreach($selectedIDs as $key => $value)
       {
          if($value)
          {
-            $this->removeIncomeWithId($key);
+            $this->removeTransactionWithId($key);
          }
       }
    }
 
    /**
-    * Remove an income from the database
+    * Remove an transaction from the database
     *
     * @param string id
-    *    ID of the income to remove
+    *    ID of the transaction to remove
     */
-   private function removeIncomeWithId(string &$id)
+   private function removeTransactionWithId(string &$id)
    {
-      $num_deleted = db_delete('income')
+      $num_deleted = db_delete('transactions')
          ->condition('id', $id)
          ->execute();
    }
 
    /**
-    * Returns the income add form
+    * Returns the transaction add form
     *
-    * Builds either the income add form or the income update form. If the
-    * input parameter $modifyId is provided, then the income update form
-    * will be returned. The modifyId is the ID of the income in the database
+    * Builds either the transaction add form or the transaction update form. If the
+    * input parameter $modifyId is provided, then the transaction update form
+    * will be returned. The modifyId is the ID of the transaction in the database
     * that will be updated. The input fields are pre-populated with
     * the values from the database.
     *
     * @param string $modifyId
-    *    ID field from the database of the income to modify
+    *    ID field from the database of the transaction to modify
     * @return array
-    *    The income add/update form
+    *    The transaction add/update form
     */
-   private function getIncomeAddUpdateForm(string &$modifyId=NULL)
+   private function getTransactionAddUpdateForm(string &$modifyId=NULL)
    {
       $form = array();
 
-      $categorySelect = $this->getIncomeCategorySelect();
+      $categorySelect = $this->getBudgetCategorySelect();
 
       if(!empty($categorySelect))
       {
-         $form['addIncome'] = array(
+         $form['addTransaction'] = array(
             '#type' => 'details',
-            '#title' => t('Add a new income transaction'),
+            '#title' => t('Add a new transaction'),
             '#open' => TRUE,
          );
 
-         $form['addIncome']['amount'] = array(
+         $form['addTransaction']['payee'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Payee'),
+            '#size' => 40,
+            '#maxLength' => 40,
+         );
+
+         $form['addTransaction']['amount'] = array(
             '#type' => 'textfield',
             '#title' => t('Amount'),
             '#size' => 40,
             '#maxLength' => 40,
          );
 
-         $form['addIncome']['date'] = array(
+         $form['addTransaction']['date'] = array(
             '#type' => 'date',
             '#title' => t('Date'),
             '#default_value' => t(date('Y-m-d')),
          );
 
-         $form['addIncome']['categorySelect'] = $categorySelect;
+         $form['addTransaction']['categorySelect'] = $categorySelect;
 
-         $form['addIncome']['notes'] = array(
-            '#type' => 'textfield',
-            '#title' => t('Notes'),
-            '#size' => 40,
-            '#maxLength' => 100,
+         $form['addTransaction']['taxDeduct'] = array(
+            '#type' => 'checkbox',
+            '#title' => t('Tax Deductible'),
+            '#default_value' => 0,
          );
 
          if($modifyId)
          {
-            $result = $this->getIncomeContents($modifyId);
-            foreach($result as $income)
+            $result = $this->getTransactionContents($modifyId);
+            foreach($result as $transaction)
             {
-               $categorySelect = $this->getIncomeCategorySelect($income->category);
-               $form['addIncome']['amount']['#value'] = $income->amount;
-               $form['addIncome']['date']['#value'] = t(date('Y-m-d', $income->timestamp));
-               $form['addIncome']['categorySelect'] = $categorySelect;
-               $form['addIncome']['notes']['#value'] = $income->notes;
-               $form['addIncome']['#title'] = t("Update income");
-               $form['addIncome']['#open'] = TRUE;
+               $categorySelect = $this->getBudgetCategorySelect($transaction->category);
+               $form['addTransaction']['payee']['#value'] = $transaction->payee;
+               $form['addTransaction']['amount']['#value'] = $transaction->amount;
+               $form['addTransaction']['date']['#value'] = t(date('Y-m-d', $transaction->timestamp));
+               $form['addTransaction']['categorySelect'] = $categorySelect;
+               $form['addTransaction']['taxDeduct']['#value'] = $transaction->tax_deduct;
+               $form['addTransaction']['#title'] = t("Update transaction");
+               $form['addTransaction']['#open'] = TRUE;
             }
 
-            $form['addIncome']['submit'] = array(
+            $form['addTransaction']['submit'] = array(
                '#type' => 'submit',
                '#value' => 'Update',
             );
 
-            $form['addIncome']['cancel'] = array(
+            $form['addTransaction']['cancel'] = array(
                '#type' => 'submit',
                '#value' => 'Cancel',
             );
          }
          else
          {
-            $form['addIncome']['submit'] = array(
+            $form['addTransaction']['submit'] = array(
                '#type' => 'submit',
-               '#value' => 'Add Income',
+               '#value' => 'Add Transaction',
             );
          }
       }
       else
       {
-         drupal_set_message("Add at least one income category in order to add an income", 'error');
+         drupal_set_message("Add at least one budget category in order to add a transaction", 'error');
       }
 
       return $form;
    }
 
    /**
-    * Returns the income manaagment form
+    * Returns the transaction manaagment form
     *
-    * Returns a tableselect showing the values for all income entries  
+    * Returns a tableselect showing the values for all transaction entries  
     *
     * @return array
-    *    The income management form
+    *    The transaction management form
     */
-   private function getIncomeManageForm()
+   private function getTransactionManageForm()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
 
@@ -648,53 +691,45 @@ class IncomeForm extends FormBase
          $tempstore->set('startTime', $startTime);
       }
 
-
       // Get the filtered categories
-      $filteredCategories = $tempstore->get('income_categories');
+      $filteredCategories = $tempstore->get('transaction_categories');
+      $taxDeductible = $tempstore->get('taxDeduct');
 
       $id = NULL;
-      $result = $this->getIncomeContents($id, $startTime, $endTime, $filteredCategories);
+      $result = $this->getTransactionContents($id, $startTime, $endTime, $filteredCategories, $taxDeductible);
 
       $categories = array();
 
       $form = array();
-      // Iterate over the income entries and format as strings
+
+      // Iterate over the transaction entries and format as strings
       setlocale(LC_MONETARY, 'en_US.UTF-8');
-      foreach ($result as $income)
+      foreach ($result as $transaction)
       {
          $deleteButton = array(
             '#type' => 'submit',
             '#value' => t('Delete'),
-            '#name' => t('delete_button_' . $income->id),
+            '#name' => t('delete_button_' . $transaction->id),
          );
 
          $modifyButton = array(
             '#type' => 'submit',
             '#value' => t('Modify'),
-            '#name' => t('modify_button_' . $income->id),
+            '#name' => t('modify_button_' . $transaction->id),
          );
 
-         if($income->notes)
-         {
-            $note = $income->notes;
-         }
-         else
-         {
-            $note = t("");
-         }
-
-         $categorySelect = $this->getIncomeCategorySelect($income->category);
-         $category = $categorySelect['#options'][$income->category];
+         $categorySelect = $this->getBudgetCategorySelect($transaction->category);
+         $category = $categorySelect['#options'][$transaction->category];
          if($category == null)
          {
             $category = "";
          }
 
-         $categories[$income->id] = array(
-            'amount' => money_format('%.2n', $income->amount),
-            'date' => date('m/d/Y', $income->timestamp),
+         $categories[$transaction->id] = array(
+            'payee' => $transaction->payee,
+            'amount' => money_format('%.2n', $transaction->amount),
+            'date' => date('m/d/Y', $transaction->timestamp),
             'category' => $category,
-            'notes' => $note,
             'modify' => array('data'=>$modifyButton),
             'delete' => array('data'=>$deleteButton),
          );
@@ -702,29 +737,29 @@ class IncomeForm extends FormBase
 
       if (!empty($categories))
       {
-         $form['income'] = array(
+         $form['transaction'] = array(
             '#type' => 'details',
-            '#title' => t("Manage Income Entries"),
+            '#title' => t("Manage Transaction Entries"),
             '#open' => TRUE,
          );
 
          $header = array(
+            'payee' => t('Payee'),
             'amount' => t('Amount'),
             'date' => t('Date'),
             'category' => t('Category'),
-            'notes' => t('Notes'),
             'modify' => t('Modify'),
             'delete' => t('Delete'),
          );
 
-         $form['income']['categories'] = array(
+         $form['transaction']['categories'] = array(
             '#type' => 'tableselect',
             '#header' => $header,
             '#options' => $categories,
             '#multiple' => TRUE,
          );
 
-         $form['income']['remove'] = array(
+         $form['transaction']['remove'] = array(
             '#type' => 'submit',
             '#value' => 'Delete Selected',
          );
@@ -734,12 +769,12 @@ class IncomeForm extends FormBase
    }
 
    /**
-    * Returns the income filter form
+    * Returns the transaction filter form
     *
     * @return array
-    *    The income filter form
+    *    The transaction filter form
     */
-   private function getIncomeFilterForm()
+   private function getTransactionFilterForm()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
 
@@ -761,13 +796,13 @@ class IncomeForm extends FormBase
          $tempstore->set('startTime', $startTime);
       }
 
-      $categorySelect = $this->getIncomeCategorySelect();
+      $categorySelect = $this->getBudgetCategorySelect();
       $categorySelect['#multiple'] = TRUE;
-      $defaultCategories = $tempstore->get('income_categories');
+      $defaultCategories = $tempstore->get('transaction_categories');
       if($defaultCategories == NULL)
       {
          $defaultCategories = array_keys($categorySelect['#options']);
-         $tempstore->set('income_categories', $defaultCategories);
+         $tempstore->set('transaction_categories', $defaultCategories);
       }
       $categorySelect['#default_value'] = $defaultCategories;
 
@@ -793,6 +828,19 @@ class IncomeForm extends FormBase
       );
 
       $form['filter']['filterCategorySelect'] = $categorySelect;
+
+      $taxDeductible = $tempstore->get('taxDeduct');
+      if($taxDeductible == NULL)
+      {
+         $taxDeductible = 0;
+         $tempstore->set('taxDeduct', $taxDeductible);
+      }
+
+      $form['filter']['taxDeduct'] = array(
+         '#type' => 'checkbox',
+         '#title' => t('Tax Deductible'),
+         '#default_value' => $taxDeductible,
+      );
 
       $form['filter']['submit'] = array(
          '#type' => 'submit',
