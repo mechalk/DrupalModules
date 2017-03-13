@@ -1,34 +1,41 @@
-budget.account_form:
-   title: Accounts
-   description: Account management form
-   route_name: budget.account_form
+budget.summary_form:
+   title: Summary
+   description: Summary form
+   route_name: budget.summary_form
    menu_name: main
-   weight: 1
-
-budget.budget_category_form:
-   title: Budget Categories
-   description: Budget category management form
-   route_name: budget.budget_category_form
-   menu_name: main
-   weight: 2
+   weight: 0
 
 budget.transaction_form:
    title: Transactions
    description: Transaction management form
    route_name: budget.transaction_form
    menu_name: main
-   weight: 3
-
-budget.income_category_form:
-   title: Income Categories
-   description: Income category management form
-   route_name: budget.income_category_form
-   menu_name: main
-   weight: 4
+   weight: 1
 
 budget.income_form:
    title: Income
    description: Income management form
    route_name: budget.income_form
+   menu_name: main
+   weight: 2
+
+budget.account_form:
+   title: Accounts
+   description: Account management form
+   route_name: budget.account_form
+   menu_name: main
+   weight: 3
+
+budget.budget_category_form:
+   title: Budget Categories
+   description: Budget category management form
+   route_name: budget.budget_category_form
+   menu_name: main
+   weight: 4
+
+budget.income_category_form:
+   title: Income Categories
+   description: Income category management form
+   route_name: budget.income_category_form
    menu_name: main
    weight: 5

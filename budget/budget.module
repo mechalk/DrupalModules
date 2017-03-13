@@ -12,3 +12,22 @@
  * Budget Forms
  * @} End of "defgroup budget".
  */
+function budget_user_login($account)
+{
+   $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
+   $tempstore->set('startTime', NULL);
+   $tempstore->set('endTime', NULL);
+   $tempstore->set('transaction_categories', NULL);
+   $tempstore->set('income_categories', NULL);
+   $tempstore->set('taxDeduct', NULL);
+}
+
+function budget_user_logout($account)
+{
+   $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
+   $tempstore->set('startTime', NULL);
+   $tempstore->set('endTime', NULL);
+   $tempstore->set('transaction_categories', NULL);
+   $tempstore->set('income_categories', NULL);
+   $tempstore->set('taxDeduct', NULL);
+}

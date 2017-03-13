@@ -52,3 +52,10 @@ budget.income_form:
       _form: '\Drupal\budget\Form\IncomeForm'
    requirements:
       _permission: 'budget budget_permission'
+
+budget.summary_form:
+   path: 'budget/summary_form'
+   defaults:
+      _form: '\Drupal\budget\Form\SummaryForm'
+   requirements:
+      _permission: 'budget budget_permission'

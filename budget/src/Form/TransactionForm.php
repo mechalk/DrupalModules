@@ -21,7 +21,7 @@ class TransactionForm extends FormBase
     * @return array
     *    Category select array
     */
-   private function getBudgetCategorySelect(string &$defaultCategory=NULL)
+   static public function getBudgetCategorySelect(string &$defaultCategory=NULL)
    {
       $categorySelect = array();
 

@@ -21,7 +21,7 @@ class IncomeForm extends FormBase
     * @return array
     *    Category select array
     */
-   private function getIncomeCategorySelect(string &$defaultCategory=NULL)
+   public static function getIncomeCategorySelect(string &$defaultCategory=NULL)
    {
       $categorySelect = array();
 
@@ -71,7 +71,7 @@ class IncomeForm extends FormBase
     * @return array
     *    Income contents from the database
     */
-   public static function getIncomeContents(string &$id=NULL, string &$startTime=NULL, string &$endTime=NULL, array &$categories)
+   public static function getIncomeContents(string &$id=NULL, string &$startTime=NULL, string &$endTime=NULL, array &$categories=NULL)
    {
       if($id != NULL)
       {
