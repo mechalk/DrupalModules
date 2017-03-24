@@ -132,11 +132,11 @@ class BudgetCategoryForm extends FormBase
 
       if(strcasecmp($operation, "Add") == 0)
       {
-         $this->addUpdateBudgetCategoryValidate($form_state, $budgetCategory, $allocation);
+         $this->addUpdateBudgetCategoryValidate($form_state, $budgetCategory, $allocation, true);
       }
       else if(strcasecmp($operation, "Update") == 0)
       {
-         $this->addUpdateBudgetCategoryValidate($form_state, $budgetCategory, $allocation);
+         $this->addUpdateBudgetCategoryValidate($form_state, $budgetCategory, $allocation, false);
       }
    }
 
@@ -216,14 +216,14 @@ class BudgetCategoryForm extends FormBase
     * @param string $allocation
     *    Allocation amount of the budget category to validate
     */
-   private function addUpdateBudgetCategoryValidate(FormStateInterface $form_state, string &$category, string &$allocation)
+   private function addUpdateBudgetCategoryValidate(FormStateInterface $form_state, string &$category, string &$allocation, bool $add)
    {
       if(!$category)
       {
          $form_state->setErrorByName('budgetCategory', 
             'Please fill in the category field');
       }
-      else
+      else if($add)
       {
          // Category name is set. Make sure the same category does not already exist
          $result = db_select('budgetCategories', 'b')
