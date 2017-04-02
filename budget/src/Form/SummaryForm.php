@@ -264,9 +264,6 @@ class SummaryForm extends FormBase
       $totalEarned = 0;
       foreach($incomeCategories as $incomeCategory)
       {
-         $debugMsg = "Income Category " . $incomeCategory;
-         drupal_set_message($debugMsg);
-
          $amountEarnedQuery = db_select('income','i')
             ->fields('i', array('timestamp','amount','category'))
             ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
