@@ -1,0 +1,16 @@
+budget_chart:
+  version: 1.x
+  css:
+    theme:
+      css/budget.css: {}
+  dependencies:
+    - flot/flot
+    - core/jquery
+
+series_toggle:
+  version: 1.x
+  js:
+    js/budget_chart_series_toggle.js: {}
+  dependencies:
+    - flot/flot
+    - core/jquery

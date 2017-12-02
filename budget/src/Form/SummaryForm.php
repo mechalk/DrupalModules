@@ -13,7 +13,7 @@ use Drupal\Core\Form\FormStateInterface;
  */
 class SummaryForm extends FormBase
 {
-   private function getStartTime($endTime=NULL)
+   public static function getStartTime($endTime=NULL)
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
 
@@ -33,7 +33,7 @@ class SummaryForm extends FormBase
       return $startTime;
    }
 
-   private function getEndTime()
+   public static function getEndTime()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
       $endTime = $tempstore->get('endTime');
@@ -178,7 +178,7 @@ class SummaryForm extends FormBase
     * @return array
     *    The transaction filter form
     */
-   private function getSummaryFilterForm()
+   public function getSummaryFilterForm()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
 
@@ -248,7 +248,7 @@ class SummaryForm extends FormBase
 
    }
 
-   private function getIncomeSummaryForm()
+   public function getIncomeSummaryForm()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
       setLocale(LC_MONETARY, 'en_US.UTF-8');
@@ -264,6 +264,8 @@ class SummaryForm extends FormBase
       $totalEarned = 0;
       foreach($incomeCategories as $incomeCategory)
       {
+         $name = null;
+
          $amountEarnedQuery = db_select('income','i')
             ->fields('i', array('timestamp','amount','category'))
             ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
@@ -276,6 +278,11 @@ class SummaryForm extends FormBase
          foreach($result as $category)
          {
             $name = $category->category;
+         }
+
+         if(!$name)
+         {
+            $name = "";
          }
 
          $items[$incomeCategory] = array(
@@ -318,7 +325,7 @@ class SummaryForm extends FormBase
       return $form;
    }
 
-   private function getBudgetSummaryForm()
+   public function getBudgetSummaryForm()
    {
       $tempstore = \Drupal::service('user.private_tempstore')->get('budget');
       setLocale(LC_MONETARY, 'en_US.UTF-8');
@@ -334,6 +341,8 @@ class SummaryForm extends FormBase
       $totalUsed = 0;
       foreach($categories as $transactionCategory)
       {
+         $name = null;
+
          $amountUsedQuery = db_select('transactions','t')
             ->fields('t', array('timestamp','amount','category'))
             ->condition('timestamp', array($startTime, $endTime), 'BETWEEN')
@@ -346,6 +355,11 @@ class SummaryForm extends FormBase
          foreach($result as $category)
          {
             $name = $category->category;
+         }
+
+         if(!$name)
+         {
+            $name = "";
          }
 
          $items2[$transactionCategory] = array(

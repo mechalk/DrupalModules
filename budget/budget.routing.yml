@@ -59,3 +59,11 @@ budget.summary_form:
       _form: '\Drupal\budget\Form\SummaryForm'
    requirements:
       _permission: 'budget budget_permission'
+
+budget.summary_content:
+   path: 'budget/summary_content'
+   defaults:
+      _controller: '\Drupal\budget\Controller\Summary::content'
+      _title: 'Summary'
+   requirements:
+      _permission: 'budget budget_permission'

@@ -1,7 +1,7 @@
-budget.summary_form:
+budget.summary_content:
    title: Summary
-   description: Summary form
-   route_name: budget.summary_form
+   description: Summary Form and Chart
+   route_name: budget.summary_content
    menu_name: main
    weight: 0
 
