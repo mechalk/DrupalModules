@@ -1,6 +1,7 @@
 {% extends "budget-chart.html.twig" %}
 {% block container %}
 {{ attach_library('budget/series_toggle') }}
-			<div id="placeholder" class="demo-placeholder" style="float:left; width:675px;"></div>
-			<p id="choices" style="float:right; width:135px;"></p>
+         <div id="legendHolder" class="legend-placeholder"></div>
+			<div id="placeholder" class="demo-placeholder" style="float:left;"></div>
+			<p id="choices" class="label-placeholder" style="float:right; overflow-y:scroll;"></p>
 {% endblock %}

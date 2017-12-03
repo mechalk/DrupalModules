@@ -44,7 +44,10 @@ class Summary extends ControllerBase
             ],
          ],
          "legend" => [
-            "position" => "nw",
+            "noColumns" => 4,
+            "container" => "#legendHolder",
+            "show" => true,
+            "backgroundOpacity" => 100
          ],
       ];
 
@@ -56,6 +59,10 @@ class Summary extends ControllerBase
       ];
 
       return $output;
+   }
+
+   private function formatLabel()
+   {
    }
 
    private function getData()
@@ -116,15 +123,17 @@ class Summary extends ControllerBase
                $amountEarned = 0;
             }
 
+            $shortenedName = (strlen($name) > 11) ? substr($name,0,8).'...' : $name;
+
             $data[$incomeCategory]['data'][] = [t($dateTime->format('m/y')), $amountEarned];
-            $data[$incomeCategory]['label'] = $name;
+            $data[$incomeCategory]['label'] = $shortenedName;
             $data[$incomeCategory]['yaxis'] = 1;
 
             $index = 10000 + $incomeCategory;
             $total[$incomeCategory] = $total[$incomeCategory] + $amountEarned;
 
             $data[$index]['data'][] = [t($dateTime->format('m/y')), $total[$incomeCategory]];
-            $data[$index]['label'] = t("Total " . $name);
+            $data[$index]['label'] = t("Total " . $shortenedName);
             $data[$index]['yaxis'] = 2;
             $data[$index]['lines'] = array('show' => TRUE, 'fill' => FALSE);
             $data[$index]['bars'] = array('show' => FALSE);
